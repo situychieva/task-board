@@ -2,12 +2,13 @@ import React, { useEffect } from 'react';
 import { useTaskStore } from '../store/taskStore';
 import { TaskCard } from '../components/tasks/TaskCard';
 import { FilterBar } from '../components/tasks/FilterBar';
+import { KanbanBoard } from '../components/tasks/KanbanBoard';
 import { TaskDetail } from '../components/tasks/TaskDetail';
 import { TaskForm } from '../components/tasks/TaskForm';
 import { DeleteConfirm } from '../components/tasks/DeleteConfirm';
 import { Modal } from '../components/ui/Modal';
 import { Spinner, STATUS_META } from '../components/ui';
-import { Plus, List, LayoutGrid, AlertCircle } from 'lucide-react';
+import { Plus, List, LayoutGrid, Columns, AlertCircle } from 'lucide-react';
 
 function StatsPills({ tasks }) {
   return (
@@ -30,25 +31,28 @@ function StatsPills({ tasks }) {
   );
 }
 
-// Modal state machine: null | 'detail' | 'create' | 'edit' | 'delete'
+const VIEWS = [
+  { key: 'list',   Icon: List,        label: 'List' },
+  { key: 'grid',   Icon: LayoutGrid,  label: 'Grid' },
+  { key: 'kanban', Icon: Columns,     label: 'Board' },
+];
+
 export function TaskListPage() {
   const { fetchTasks, deleteTask, isLoading, error, getFilteredTasks, tasks } = useTaskStore();
   const [view, setView] = React.useState('list');
-  const [modal, setModal] = React.useState(null); // { type, task? }
+  const [modal, setModal] = React.useState(null);
 
   useEffect(() => { fetchTasks(); }, []);
   const filtered = getFilteredTasks();
 
-  const openDetail = (task) => setModal({ type: 'detail', task });
-  const openCreate = () => setModal({ type: 'create' });
-  const openEdit   = (task) => setModal({ type: 'edit', task });
-  const openDelete = (task) => setModal({ type: 'delete', task });
-  const closeModal = () => setModal(null);
+  const openDetail  = (task)      => setModal({ type: 'detail', task });
+  const openCreate  = (status)    => setModal({ type: 'create', defaultStatus: status ?? 'todo' });
+  const openEdit    = (task)      => setModal({ type: 'edit', task });
+  const openDelete  = (task)      => setModal({ type: 'delete', task });
+  const closeModal  = ()          => setModal(null);
+  const handleDeleteConfirm = ()  => { deleteTask(modal.task.id); closeModal(); };
 
-  const handleDeleteConfirm = () => {
-    deleteTask(modal.task.id);
-    closeModal();
-  };
+  const isKanban = view === 'kanban';
 
   return (
     <>
@@ -60,16 +64,18 @@ export function TaskListPage() {
         overflow: 'hidden',
         background: 'var(--bg)',
       }}>
-        {/* Toolbar */}
+
+        {/* ── Toolbar ── */}
         <header style={{
           gridColumn: '1 / -1',
           display: 'flex', alignItems: 'center', gap: 12,
           padding: '0 20px', height: 52,
-          background: 'rgba(242,242,247,0.85)',
+          background: 'rgba(242,242,247,0.88)',
           backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
           borderBottom: '0.5px solid var(--sep)',
           position: 'sticky', top: 0, zIndex: 10,
         }}>
+          {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{
               width: 26, height: 26, borderRadius: 7, background: 'var(--blue)',
@@ -85,28 +91,35 @@ export function TaskListPage() {
 
           <div style={{ flex: 1 }} />
 
-          {/* View toggle */}
+          {/* View toggle — 3-way segmented control */}
           <div style={{
-            display: 'flex', background: 'var(--sep-2)',
+            display: 'flex', background: 'rgba(0,0,0,0.05)',
             borderRadius: 'var(--r-sm)', padding: 2, gap: 1,
             border: '0.5px solid var(--sep)',
           }}>
-            {[['list', List], ['grid', LayoutGrid]].map(([mode, Icon]) => (
-              <button key={mode} onClick={() => setView(mode)} style={{
-                display: 'flex', alignItems: 'center', padding: '4px 10px',
-                borderRadius: 6, border: 'none',
-                background: view === mode ? 'var(--bg-2)' : 'transparent',
-                color: view === mode ? 'var(--text)' : 'var(--text-4)',
-                boxShadow: view === mode ? 'var(--sh-xs)' : 'none',
-                transition: 'all 0.15s ease',
-              }}>
-                <Icon size={14} strokeWidth={1.8} />
+            {VIEWS.map(({ key, Icon, label }) => (
+              <button
+                key={key}
+                onClick={() => setView(key)}
+                title={label}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '4px 10px', borderRadius: 6,
+                  background: view === key ? 'var(--bg-2)' : 'transparent',
+                  color: view === key ? 'var(--text)' : 'var(--text-4)',
+                  boxShadow: view === key ? 'var(--sh-xs)' : 'none',
+                  fontSize: 12, fontWeight: view === key ? 600 : 400,
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <Icon size={13} strokeWidth={1.8} />
+                <span style={{ display: view === key ? 'inline' : 'none' }}>{label}</span>
               </button>
             ))}
           </div>
 
           <button
-            onClick={openCreate}
+            onClick={() => openCreate(null)}
             style={{
               display: 'flex', alignItems: 'center', gap: 5,
               background: 'var(--blue)', color: '#fff',
@@ -122,7 +135,7 @@ export function TaskListPage() {
           </button>
         </header>
 
-        {/* Sidebar */}
+        {/* ── Sidebar ── */}
         <aside style={{
           background: 'rgba(242,242,247,0.6)',
           backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
@@ -132,19 +145,39 @@ export function TaskListPage() {
           <FilterBar />
         </aside>
 
-        {/* Main */}
+        {/* ── Main ── */}
         <main style={{
-          overflowY: 'auto', padding: '20px 24px',
-          display: 'flex', flexDirection: 'column', gap: 14,
+          overflowY: isKanban ? 'hidden' : 'auto',
+          overflowX: 'hidden',
+          padding: isKanban ? '16px 0 0' : '20px 24px',
+          display: 'flex', flexDirection: 'column',
+          gap: isKanban ? 0 : 14,
         }}>
-          {!isLoading && tasks.length > 0 && <StatsPills tasks={tasks} />}
 
-          {!isLoading && (
+          {/* Stats bar — list/grid only */}
+          {!isKanban && !isLoading && tasks.length > 0 && (
+            <StatsPills tasks={tasks} />
+          )}
+          {!isKanban && !isLoading && (
             <p style={{ fontSize: 12, color: 'var(--text-4)', fontWeight: 500 }}>
               {filtered.length} {filtered.length === 1 ? 'task' : 'tasks'}
             </p>
           )}
 
+          {/* Kanban board title row */}
+          {isKanban && !isLoading && (
+            <div style={{ padding: '0 24px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 12, color: 'var(--text-4)', fontWeight: 500 }}>
+                {filtered.length} {filtered.length === 1 ? 'task' : 'tasks'}
+              </span>
+              <span style={{ fontSize: 12, color: 'var(--sep)', userSelect: 'none' }}>·</span>
+              <span style={{ fontSize: 12, color: 'var(--text-5)' }}>
+                Drag cards between columns to change status
+              </span>
+            </div>
+          )}
+
+          {/* Loading */}
           {isLoading && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, height: 220, color: 'var(--text-4)' }}>
               <Spinner size={26} />
@@ -152,13 +185,25 @@ export function TaskListPage() {
             </div>
           )}
 
+          {/* Error */}
           {!isLoading && error && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 'var(--r)', background: 'var(--red-bg)', color: 'var(--red)', fontSize: 13 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 'var(--r)', background: 'var(--red-bg)', color: 'var(--red)', fontSize: 13, margin: isKanban ? '0 24px' : 0 }}>
               <AlertCircle size={15} strokeWidth={1.5} /> {error}
             </div>
           )}
 
-          {!isLoading && !error && filtered.length === 0 && (
+          {/* ── Kanban view ── */}
+          {!isLoading && !error && isKanban && (
+            <div style={{ flex: 1, overflow: 'hidden' }}>
+              <KanbanBoard
+                onCardOpen={openDetail}
+                onAddTask={(status) => openCreate(status)}
+              />
+            </div>
+          )}
+
+          {/* ── List / Grid view ── */}
+          {!isLoading && !error && !isKanban && filtered.length === 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, height: 220, color: 'var(--text-4)' }}>
               <span style={{ fontSize: 36, opacity: 0.3 }}>◻</span>
               <span style={{ fontSize: 14, fontWeight: 500 }}>No tasks</span>
@@ -166,14 +211,14 @@ export function TaskListPage() {
             </div>
           )}
 
-          {!isLoading && filtered.length > 0 && (
+          {!isLoading && !error && !isKanban && filtered.length > 0 && (
             <div style={{
               display: 'grid',
               gridTemplateColumns: view === 'grid' ? 'repeat(auto-fill, minmax(300px, 1fr))' : '1fr',
               gap: 10, alignContent: 'start',
             }}>
               {filtered.map((task, i) => (
-                <div key={task.id} style={{ animationDelay: `${i * 30}ms` }}>
+                <div key={task.id} style={{ animationDelay: `${i * 25}ms` }}>
                   <TaskCard
                     task={task}
                     onDelete={(id) => openDelete(tasks.find((t) => t.id === id))}
@@ -197,26 +242,19 @@ export function TaskListPage() {
           />
         </Modal>
       )}
-
       {modal?.type === 'create' && (
         <Modal title="New Task" onClose={closeModal}>
-          <TaskForm onClose={closeModal} />
+          <TaskForm defaultStatus={modal.defaultStatus} onClose={closeModal} />
         </Modal>
       )}
-
       {modal?.type === 'edit' && (
         <Modal title="Edit Task" onClose={closeModal}>
           <TaskForm task={modal.task} onClose={closeModal} />
         </Modal>
       )}
-
       {modal?.type === 'delete' && (
         <Modal title="Confirm Delete" onClose={closeModal} width={420}>
-          <DeleteConfirm
-            task={modal.task}
-            onConfirm={handleDeleteConfirm}
-            onCancel={closeModal}
-          />
+          <DeleteConfirm task={modal.task} onConfirm={handleDeleteConfirm} onCancel={closeModal} />
         </Modal>
       )}
     </>

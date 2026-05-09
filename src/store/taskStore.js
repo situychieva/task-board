@@ -1,53 +1,113 @@
 import { create } from 'zustand';
 import { mockTasks, mockTags } from '../utils/mockData';
 
+const PAGE_SIZE = 6;
+
 export const useTaskStore = create((set, get) => ({
   tasks: [],
   tags: [],
   isLoading: false,
   error: null,
 
-  // Filters
-  filters: {
-    status: null,
-    priority: null,
-    tagId: null,
-    search: '',
-  },
+  // Filters + sort + pagination
+  filters: { status: null, priority: null, tagId: null, assigneeId: null, search: '', onlyMine: false },
+  sort: { field: 'updatedAt', dir: 'desc' }, // field: 'updatedAt'|'createdAt'|'priority'|'title'
+  page: 1,
 
-  setFilter: (key, value) =>
-    set((s) => ({ filters: { ...s.filters, [key]: value } })),
+  setFilter: (key, value) => set((s) => ({ filters: { ...s.filters, [key]: value }, page: 1 })),
+  clearFilters: () => set({ filters: { status: null, priority: null, tagId: null, assigneeId: null, search: '', onlyMine: false }, page: 1 }),
+  setSort: (field, dir) => set({ sort: { field, dir }, page: 1 }),
+  setPage: (page) => set({ page }),
 
-  clearFilters: () =>
-    set({ filters: { status: null, priority: null, tagId: null, search: '' } }),
-
-  // Simulated fetch
   fetchTasks: async () => {
     set({ isLoading: true, error: null });
-    await new Promise((r) => setTimeout(r, 800));
+    await new Promise((r) => setTimeout(r, 600));
     set({ tasks: mockTasks, tags: mockTags, isLoading: false });
   },
 
-  // Derived: filtered tasks
+  // Returns filtered+sorted tasks (all, no pagination)
   getFilteredTasks: () => {
-    const { tasks, filters } = get();
-    return tasks.filter((t) => {
-      if (filters.status && t.status !== filters.status) return false;
-      if (filters.priority && t.priority !== filters.priority) return false;
-      if (filters.tagId && !t.tags.some((tg) => tg.id === filters.tagId)) return false;
-      if (filters.search && !t.title.toLowerCase().includes(filters.search.toLowerCase())) return false;
+    const { tasks, filters, sort } = get();
+    const PRIORITY_RANK = { low: 0, medium: 1, high: 2 };
+
+    let result = tasks.filter((t) => {
+      if (filters.status     && t.status !== filters.status) return false;
+      if (filters.priority   && t.priority !== filters.priority) return false;
+      if (filters.tagId      && !t.tags.some((tg) => tg.id === filters.tagId)) return false;
+      if (filters.assigneeId && t.assignee?.id !== filters.assigneeId) return false;
+      if (filters.onlyMine   && t.assignee?.id !== 4) return false;
+      if (filters.search     && !t.title.toLowerCase().includes(filters.search.toLowerCase())) return false;
       return true;
     });
+
+    result = [...result].sort((a, b) => {
+      let av, bv;
+      if (sort.field === 'priority') { av = PRIORITY_RANK[a.priority]; bv = PRIORITY_RANK[b.priority]; }
+      else if (sort.field === 'title') { av = a.title.toLowerCase(); bv = b.title.toLowerCase(); }
+      else { av = new Date(a[sort.field]); bv = new Date(b[sort.field]); }
+      if (av < bv) return sort.dir === 'asc' ? -1 : 1;
+      if (av > bv) return sort.dir === 'asc' ? 1 : -1;
+      return 0;
+    });
+
+    return result;
   },
 
-  deleteTask: (id) =>
-    set((s) => ({ tasks: s.tasks.filter((t) => t.id !== id) })),
+  // Paginated slice of filtered tasks
+  getPagedTasks: () => {
+    const { page } = get();
+    const all = get().getFilteredTasks();
+    const total = all.length;
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    const safePage = Math.min(page, totalPages);
+    const items = all.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+    return { items, total, page: safePage, totalPages, pageSize: PAGE_SIZE };
+  },
 
-  addTask: (task) =>
-    set((s) => ({ tasks: [{ ...task, id: Date.now() }, ...s.tasks] })),
+  // CRUD
+  deleteTask: (id) => set((s) => ({ tasks: s.tasks.filter((t) => t.id !== id) })),
 
-  updateTask: (id, patch) =>
-    set((s) => ({
-      tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)),
-    })),
+  addTask: (task) => set((s) => ({
+    tasks: [{ ...task, id: Date.now(), blockedBy: task.blockedBy ?? [] }, ...s.tasks],
+  })),
+
+  updateTask: (id, patch) => set((s) => ({
+    tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...patch, updatedAt: new Date().toISOString() } : t)),
+  })),
+
+  // Blocking
+  addBlocker: (taskId, blockerId) => set((s) => ({
+    tasks: s.tasks.map((t) =>
+      t.id === taskId && !t.blockedBy.includes(blockerId)
+        ? { ...t, blockedBy: [...t.blockedBy, blockerId] }
+        : t
+    ),
+  })),
+
+  removeBlocker: (taskId, blockerId) => set((s) => ({
+    tasks: s.tasks.map((t) =>
+      t.id === taskId ? { ...t, blockedBy: t.blockedBy.filter((id) => id !== blockerId) } : t
+    ),
+  })),
+
+  // Kanban: move a task to a new status column
+  moveTaskStatus: (taskId, newStatus) => set((s) => ({
+    tasks: s.tasks.map((t) =>
+      t.id === taskId ? { ...t, status: newStatus, updatedAt: new Date().toISOString() } : t
+    ),
+  })),
+
+  // Assignment
+  assignTask: (taskId, user) => set((s) => ({
+    tasks: s.tasks.map((t) =>
+      t.id === taskId ? { ...t, assignee: user, updatedAt: new Date().toISOString() } : t
+    ),
+  })),
+
+  selfAssign: (taskId) => {
+    const CURRENT_USER = { id: 4, username: 'you' };
+    get().assignTask(taskId, CURRENT_USER);
+  },
 }));
+
+export const PAGE_SIZE_EXPORT = PAGE_SIZE;
