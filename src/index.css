@@ -1,0 +1,67 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;1,14..32,400&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:           #f2f2f7;
+  --bg-2:         #ffffff;
+  --surface:      rgba(255,255,255,0.80);
+  --surface-2:    rgba(255,255,255,0.60);
+  --glass:        rgba(255,255,255,0.72);
+
+  --text:         #1c1c1e;
+  --text-2:       #3a3a3c;
+  --text-3:       #636366;
+  --text-4:       #8e8e93;
+  --text-5:       #aeaeb2;
+
+  --sep:          rgba(60,60,67,0.13);
+  --sep-2:        rgba(60,60,67,0.07);
+
+  --blue:         #007aff;
+  --blue-bg:      rgba(0,122,255,0.10);
+  --green:        #34c759;
+  --green-bg:     rgba(52,199,89,0.12);
+  --red:          #ff3b30;
+  --red-bg:       rgba(255,59,48,0.10);
+  --orange:       #ff9500;
+  --orange-bg:    rgba(255,149,0,0.12);
+  --purple:       #af52de;
+  --purple-bg:    rgba(175,82,222,0.12);
+  --yellow:       #c4960a;
+  --yellow-bg:    rgba(255,204,0,0.14);
+  --teal:         #32ade6;
+  --teal-bg:      rgba(50,173,230,0.12);
+  --gray:         #8e8e93;
+  --gray-bg:      rgba(142,142,147,0.12);
+
+  --r-sm:  8px;
+  --r:     12px;
+  --r-lg:  16px;
+  --r-xl:  22px;
+
+  --sh-xs: 0 1px 2px rgba(0,0,0,0.06);
+  --sh-sm: 0 2px 8px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+  --sh:    0 4px 20px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
+  --sh-lg: 0 12px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.05);
+}
+
+html, body, #root {
+  height: 100%; width: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+}
+
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, textarea { font-family: inherit; }
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--sep); border-radius: 99px; }
+
+@keyframes spin    { to { transform: rotate(360deg); } }
+@keyframes fadeUp  { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeIn  { from { opacity:0; } to { opacity:1; } }
