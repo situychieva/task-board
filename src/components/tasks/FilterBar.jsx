@@ -46,7 +46,6 @@ export function FilterBar() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {/* Search */}
       <div style={{ position: 'relative' }}>
         <Search size={13} strokeWidth={2} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--text-4)', pointerEvents: 'none' }} />
         <input type="text" placeholder="Search…" value={filters.search}
@@ -56,7 +55,6 @@ export function FilterBar() {
         />
       </div>
 
-      {/* Sort */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <SectionLabel>Sort</SectionLabel>
         <select
@@ -71,7 +69,6 @@ export function FilterBar() {
         </select>
       </div>
 
-      {/* Status */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <SectionLabel>Status</SectionLabel>
         {Object.entries(STATUS_META).map(([key, { label, color, bg }]) => (
@@ -81,7 +78,6 @@ export function FilterBar() {
         ))}
       </div>
 
-      {/* Priority */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <SectionLabel>Priority</SectionLabel>
         {Object.entries(PRIORITY_META).map(([key, { label, color, bg }]) => (
@@ -91,7 +87,6 @@ export function FilterBar() {
         ))}
       </div>
 
-      {/* Assignee */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <SectionLabel>Assignee</SectionLabel>
         <FilterRow
@@ -110,7 +105,6 @@ export function FilterBar() {
         ))}
       </div>
 
-      {/* Tags */}
       {tags.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <SectionLabel>Tags</SectionLabel>
@@ -122,7 +116,6 @@ export function FilterBar() {
         </div>
       )}
 
-      {/* Clear */}
       {hasActive && (
         <button onClick={clearFilters} style={{ display: 'flex', alignItems: 'center', gap: 5, color: 'var(--blue)', fontSize: 13, fontWeight: 500, padding: '6px 10px', borderRadius: 'var(--r-sm)', background: 'var(--blue-bg)' }}>
           <X size={12} /> Clear filters

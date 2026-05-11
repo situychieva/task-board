@@ -9,9 +9,8 @@ export const useTaskStore = create((set, get) => ({
   isLoading: false,
   error: null,
 
-  // Filters + sort + pagination
   filters: { status: null, priority: null, tagId: null, assigneeId: null, search: '', onlyMine: false },
-  sort: { field: 'updatedAt', dir: 'desc' }, // field: 'updatedAt'|'createdAt'|'priority'|'title'
+  sort: { field: 'updatedAt', dir: 'desc' },
   page: 1,
 
   setFilter: (key, value) => set((s) => ({ filters: { ...s.filters, [key]: value }, page: 1 })),
@@ -25,7 +24,6 @@ export const useTaskStore = create((set, get) => ({
     set({ tasks: mockTasks, tags: mockTags, isLoading: false });
   },
 
-  // Returns filtered+sorted tasks (all, no pagination)
   getFilteredTasks: () => {
     const { tasks, filters, sort } = get();
     const PRIORITY_RANK = { low: 0, medium: 1, high: 2 };
@@ -53,7 +51,6 @@ export const useTaskStore = create((set, get) => ({
     return result;
   },
 
-  // Paginated slice of filtered tasks
   getPagedTasks: () => {
     const { page } = get();
     const all = get().getFilteredTasks();
@@ -64,7 +61,6 @@ export const useTaskStore = create((set, get) => ({
     return { items, total, page: safePage, totalPages, pageSize: PAGE_SIZE };
   },
 
-  // CRUD
   deleteTask: (id) => set((s) => ({ tasks: s.tasks.filter((t) => t.id !== id) })),
 
   addTask: (task) => set((s) => ({
@@ -75,7 +71,6 @@ export const useTaskStore = create((set, get) => ({
     tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...patch, updatedAt: new Date().toISOString() } : t)),
   })),
 
-  // Blocking
   addBlocker: (taskId, blockerId) => set((s) => ({
     tasks: s.tasks.map((t) =>
       t.id === taskId && !t.blockedBy.includes(blockerId)
@@ -90,14 +85,12 @@ export const useTaskStore = create((set, get) => ({
     ),
   })),
 
-  // Kanban: move a task to a new status column
   moveTaskStatus: (taskId, newStatus) => set((s) => ({
     tasks: s.tasks.map((t) =>
       t.id === taskId ? { ...t, status: newStatus, updatedAt: new Date().toISOString() } : t
     ),
   })),
 
-  // Assignment
   assignTask: (taskId, user) => set((s) => ({
     tasks: s.tasks.map((t) =>
       t.id === taskId ? { ...t, assignee: user, updatedAt: new Date().toISOString() } : t

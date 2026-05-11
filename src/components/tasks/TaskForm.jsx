@@ -84,24 +84,20 @@ export function TaskForm({ task, onClose, defaultStatus }) {
     onClose();
   };
 
-  // Blocked-by candidates: all tasks except the current one
   const blockCandidates = tasks.filter((t) => t.id !== task?.id);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate>
       <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-        {/* Title */}
         <Field label="Title" error={errors.title?.message}>
           <input className={`field-input${errors.title ? ' error' : ''}`} placeholder="What needs to be done?" autoFocus {...register('title')} />
         </Field>
 
-        {/* Description */}
         <Field label="Description" error={errors.description?.message}>
           <textarea className={`field-input${errors.description ? ' error' : ''}`} placeholder="Add more detail…" rows={3} {...register('description')} />
         </Field>
 
-        {/* Status + Priority */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           <Field label="Status" error={errors.status?.message}>
             <StyledSelect error={errors.status} {...register('status')}>
@@ -115,7 +111,6 @@ export function TaskForm({ task, onClose, defaultStatus }) {
           </Field>
         </div>
 
-        {/* Assignee */}
         <Field label="Assignee">
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {mockUsers.map((u) => {
@@ -145,7 +140,6 @@ export function TaskForm({ task, onClose, defaultStatus }) {
           </div>
         </Field>
 
-        {/* Tags */}
         <Field label="Tags">
           <Controller name="tagIds" control={control} render={({ field }) => (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -169,11 +163,9 @@ export function TaskForm({ task, onClose, defaultStatus }) {
           )} />
         </Field>
 
-        {/* Blocked by */}
         <Field label="Blocked By">
           <Controller name="blockedBy" control={control} render={({ field }) => (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {/* Selected blockers */}
               {field.value.length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {field.value.map((bid) => {
@@ -196,7 +188,6 @@ export function TaskForm({ task, onClose, defaultStatus }) {
                   })}
                 </div>
               )}
-              {/* Selector */}
               <StyledSelect
                 value=""
                 onChange={(e) => {
@@ -215,7 +206,6 @@ export function TaskForm({ task, onClose, defaultStatus }) {
 
       </div>
 
-      {/* Footer */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, padding: '14px 20px', borderTop: '0.5px solid var(--sep-2)' }}>
         <button type="button" onClick={onClose} style={{ padding: '7px 16px', borderRadius: 'var(--r-sm)', fontSize: 13, fontWeight: 500, background: 'var(--bg)', border: '0.5px solid var(--sep)', color: 'var(--text-2)' }}>Cancel</button>
         <button type="submit" disabled={isSubmitting} style={{ padding: '7px 18px', borderRadius: 'var(--r-sm)', fontSize: 13, fontWeight: 600, background: 'var(--blue)', color: '#fff', border: 'none', boxShadow: '0 1px 4px rgba(0,122,255,0.28)', opacity: isSubmitting ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: 7, transition: 'opacity 0.15s' }}>

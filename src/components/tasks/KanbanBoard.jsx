@@ -3,8 +3,6 @@ import { Plus, Clock } from 'lucide-react';
 import { useTaskStore } from '../../store/taskStore';
 import { STATUS_META, PRIORITY_META, Avatar } from '../ui';
 
-// ─── Compact Kanban Card ──────────────────────────────────────────────────────
-
 function KanbanCard({ task, onOpen, isDragging }) {
   const priority = PRIORITY_META[task.priority];
   const [hovered, setHovered] = useState(false);
@@ -35,7 +33,6 @@ function KanbanCard({ task, onOpen, isDragging }) {
         userSelect: 'none',
       }}
     >
-      {/* Priority accent bar */}
       <div style={{
         height: 2, borderRadius: 99,
         background: priority.color,
@@ -89,8 +86,6 @@ function KanbanCard({ task, onOpen, isDragging }) {
   );
 }
 
-// ─── Column ───────────────────────────────────────────────────────────────────
-
 function KanbanColumn({ statusKey, tasks, onCardOpen, onAddTask, draggingId, onDrop }) {
   const meta = STATUS_META[statusKey];
   const [dragOver, setDragOver] = useState(false);
@@ -137,7 +132,6 @@ function KanbanColumn({ statusKey, tasks, onCardOpen, onAddTask, draggingId, onD
         overflow: 'hidden',
       }}
     >
-      {/* Header */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 7,
         padding: '11px 12px 9px',
@@ -177,7 +171,6 @@ function KanbanColumn({ statusKey, tasks, onCardOpen, onAddTask, draggingId, onD
         </button>
       </div>
 
-      {/* Cards scroll area */}
       <div style={{
         flex: 1, overflowY: 'auto',
         padding: '8px 8px 12px',
@@ -215,8 +208,6 @@ function KanbanColumn({ statusKey, tasks, onCardOpen, onAddTask, draggingId, onD
   );
 }
 
-// ─── Board ────────────────────────────────────────────────────────────────────
-
 export function KanbanBoard({ onCardOpen, onAddTask }) {
   const { getFilteredTasks, moveTaskStatus } = useTaskStore();
   const [draggingId, setDraggingId] = useState(null);
@@ -230,8 +221,6 @@ export function KanbanBoard({ onCardOpen, onAddTask }) {
   return (
     <div
       onDragStart={(e) => {
-        const id = e.target.closest('[draggable]')?.dataset?.taskid;
-        // fallback: set dragging after brief delay so dataTransfer is populated
         requestAnimationFrame(() => setDraggingId(parseInt(e.dataTransfer.getData('taskId') || '0', 10)));
       }}
       onDragEnd={() => setDraggingId(null)}

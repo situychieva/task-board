@@ -23,21 +23,17 @@ export function TaskDetail({ task, onEdit, onDelete, onClose }) {
   const priority = PRIORITY_META[task.priority];
   const isMine   = task.assignee?.id === CURRENT_USER.id;
 
-  // Resolve blocker task objects
   const blockers = (task.blockedBy ?? []).map((id) => tasks.find((t) => t.id === id)).filter(Boolean);
-  // Tasks this task is blocking
   const blocking = tasks.filter((t) => t.blockedBy?.includes(task.id));
 
   return (
     <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
-      {/* Title */}
       <div>
         <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--text)', lineHeight: 1.35, letterSpacing: '-0.02em' }}>{task.title}</h2>
         {task.description && <p style={{ marginTop: 8, fontSize: 14, color: 'var(--text-3)', lineHeight: 1.6 }}>{task.description}</p>}
       </div>
 
-      {/* Pills */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <Pill color={status.color} bg={status.bg}>{status.label}</Pill>
         <Pill color={priority.color} bg={priority.bg}>{priority.dot} {priority.label}</Pill>
@@ -53,7 +49,6 @@ export function TaskDetail({ task, onEdit, onDelete, onClose }) {
         )}
       </div>
 
-      {/* Meta */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, padding: 16, borderRadius: 'var(--r)', background: 'var(--bg)', border: '0.5px solid var(--sep)' }}>
         {task.assignee && (
           <DetailRow label="Assignee">
@@ -72,7 +67,6 @@ export function TaskDetail({ task, onEdit, onDelete, onClose }) {
         </DetailRow>
       </div>
 
-      {/* Tags */}
       {task.tags?.length > 0 && (
         <DetailRow label="Tags">
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 4 }}>
@@ -83,7 +77,6 @@ export function TaskDetail({ task, onEdit, onDelete, onClose }) {
         </DetailRow>
       )}
 
-      {/* Blocked by */}
       {blockers.length > 0 && (
         <DetailRow label={`Blocked by (${blockers.length})`}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 4 }}>
@@ -99,7 +92,6 @@ export function TaskDetail({ task, onEdit, onDelete, onClose }) {
         </DetailRow>
       )}
 
-      {/* Is blocking others */}
       {blocking.length > 0 && (
         <DetailRow label={`Blocking (${blocking.length})`}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginTop: 4 }}>
@@ -114,7 +106,6 @@ export function TaskDetail({ task, onEdit, onDelete, onClose }) {
         </DetailRow>
       )}
 
-      {/* Actions */}
       <div style={{ display: 'flex', gap: 8, paddingTop: 4, borderTop: '0.5px solid var(--sep-2)' }}>
         <button onClick={onEdit} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 16px', borderRadius: 'var(--r-sm)', background: 'var(--blue-bg)', color: 'var(--blue)', border: '0.5px solid rgba(0,122,255,0.2)', fontSize: 13, fontWeight: 600 }}>
           <Pencil size={13} strokeWidth={2} /> Edit

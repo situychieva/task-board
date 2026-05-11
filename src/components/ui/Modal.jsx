@@ -2,14 +2,12 @@ import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 
 export function Modal({ title, onClose, children, width = 520 }) {
-  // Close on Escape
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [onClose]);
 
-  // Lock body scroll
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => { document.body.style.overflow = ''; };
@@ -42,7 +40,6 @@ export function Modal({ title, onClose, children, width = 520 }) {
           overflow: 'hidden',
         }}
       >
-        {/* Header */}
         <div style={{
           display: 'flex', alignItems: 'center',
           padding: '16px 20px',
@@ -69,7 +66,6 @@ export function Modal({ title, onClose, children, width = 520 }) {
           </button>
         </div>
 
-        {/* Scrollable body */}
         <div style={{ overflowY: 'auto', flex: 1 }}>
           {children}
         </div>

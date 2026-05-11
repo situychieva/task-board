@@ -34,7 +34,6 @@ export function TaskCard({ task, onDelete, onClick }) {
         border: '0.5px solid var(--sep)',
       }}
     >
-      {/* Top row: title + delete */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <p style={{
@@ -71,7 +70,6 @@ export function TaskCard({ task, onDelete, onClick }) {
         </button>
       </div>
 
-      {/* Tags */}
       {task.tags?.length > 0 && (
         <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
           {task.tags.map((tag) => (
@@ -87,7 +85,6 @@ export function TaskCard({ task, onDelete, onClick }) {
         </div>
       )}
 
-      {/* Footer */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 6,
         paddingTop: 8, borderTop: '0.5px solid var(--sep-2)',

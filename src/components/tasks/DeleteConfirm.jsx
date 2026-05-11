@@ -13,7 +13,6 @@ export function DeleteConfirm({ task, onConfirm, onCancel }) {
 
   return (
     <div style={{ padding: '24px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* Icon + message */}
       <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start' }}>
         <div style={{
           width: 40, height: 40, borderRadius: '50%',
@@ -33,7 +32,6 @@ export function DeleteConfirm({ task, onConfirm, onCancel }) {
         </div>
       </div>
 
-      {/* Buttons */}
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
         <button
           onClick={onCancel}

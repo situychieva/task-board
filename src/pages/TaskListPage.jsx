@@ -65,7 +65,6 @@ export function TaskListPage() {
         background: 'var(--bg)',
       }}>
 
-        {/* ── Toolbar ── */}
         <header style={{
           gridColumn: '1 / -1',
           display: 'flex', alignItems: 'center', gap: 12,
@@ -75,7 +74,6 @@ export function TaskListPage() {
           borderBottom: '0.5px solid var(--sep)',
           position: 'sticky', top: 0, zIndex: 10,
         }}>
-          {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{
               width: 26, height: 26, borderRadius: 7, background: 'var(--blue)',
@@ -91,7 +89,6 @@ export function TaskListPage() {
 
           <div style={{ flex: 1 }} />
 
-          {/* View toggle — 3-way segmented control */}
           <div style={{
             display: 'flex', background: 'rgba(0,0,0,0.05)',
             borderRadius: 'var(--r-sm)', padding: 2, gap: 1,
@@ -135,7 +132,6 @@ export function TaskListPage() {
           </button>
         </header>
 
-        {/* ── Sidebar ── */}
         <aside style={{
           background: 'rgba(242,242,247,0.6)',
           backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
@@ -145,7 +141,6 @@ export function TaskListPage() {
           <FilterBar />
         </aside>
 
-        {/* ── Main ── */}
         <main style={{
           overflowY: isKanban ? 'hidden' : 'auto',
           overflowX: 'hidden',
@@ -154,7 +149,6 @@ export function TaskListPage() {
           gap: isKanban ? 0 : 14,
         }}>
 
-          {/* Stats bar — list/grid only */}
           {!isKanban && !isLoading && tasks.length > 0 && (
             <StatsPills tasks={tasks} />
           )}
@@ -164,7 +158,6 @@ export function TaskListPage() {
             </p>
           )}
 
-          {/* Kanban board title row */}
           {isKanban && !isLoading && (
             <div style={{ padding: '0 24px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 12, color: 'var(--text-4)', fontWeight: 500 }}>
@@ -177,7 +170,6 @@ export function TaskListPage() {
             </div>
           )}
 
-          {/* Loading */}
           {isLoading && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, height: 220, color: 'var(--text-4)' }}>
               <Spinner size={26} />
@@ -185,14 +177,12 @@ export function TaskListPage() {
             </div>
           )}
 
-          {/* Error */}
           {!isLoading && error && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderRadius: 'var(--r)', background: 'var(--red-bg)', color: 'var(--red)', fontSize: 13, margin: isKanban ? '0 24px' : 0 }}>
               <AlertCircle size={15} strokeWidth={1.5} /> {error}
             </div>
           )}
 
-          {/* ── Kanban view ── */}
           {!isLoading && !error && isKanban && (
             <div style={{ flex: 1, overflow: 'hidden' }}>
               <KanbanBoard
@@ -202,7 +192,6 @@ export function TaskListPage() {
             </div>
           )}
 
-          {/* ── List / Grid view ── */}
           {!isLoading && !error && !isKanban && filtered.length === 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, height: 220, color: 'var(--text-4)' }}>
               <span style={{ fontSize: 36, opacity: 0.3 }}>◻</span>
@@ -231,7 +220,6 @@ export function TaskListPage() {
         </main>
       </div>
 
-      {/* ── Modals ── */}
       {modal?.type === 'detail' && (
         <Modal title="Task Detail" onClose={closeModal}>
           <TaskDetail

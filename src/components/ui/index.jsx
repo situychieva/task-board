@@ -1,6 +1,5 @@
 import React from 'react';
 
-// Maps task data values → Cupertino system colors
 export const STATUS_META = {
   todo:        { label: 'To Do',       color: 'var(--gray)',   bg: 'var(--gray-bg)' },
   in_progress: { label: 'In Progress', color: 'var(--blue)',   bg: 'var(--blue-bg)' },
@@ -15,7 +14,6 @@ export const PRIORITY_META = {
   high:   { label: 'High',   color: 'var(--red)',    bg: 'var(--red-bg)',    dot: '●' },
 };
 
-// Pill badge — Cupertino capsule style
 export function Pill({ color, bg, children }) {
   return (
     <span style={{
@@ -31,7 +29,6 @@ export function Pill({ color, bg, children }) {
   );
 }
 
-// Avatar — generates initials with deterministic color
 export function Avatar({ username, size = 26 }) {
   const initials = (username || '?').slice(0, 2).toUpperCase();
   const hue = [...(username || '')].reduce((a, c) => a + c.charCodeAt(0), 0) % 360;
@@ -51,7 +48,6 @@ export function Avatar({ username, size = 26 }) {
   );
 }
 
-// Spinner
 export function Spinner({ size = 20 }) {
   return (
     <div style={{
@@ -64,7 +60,6 @@ export function Spinner({ size = 20 }) {
   );
 }
 
-// Tag chip
 export function TagChip({ tag, active, onClick }) {
   return (
     <button
@@ -83,7 +78,6 @@ export function TagChip({ tag, active, onClick }) {
   );
 }
 
-// Segmented control (view toggle)
 export function SegmentedControl({ options, value, onChange }) {
   return (
     <div style={{
