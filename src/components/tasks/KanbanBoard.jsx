@@ -108,7 +108,8 @@ function KanbanColumn({ statusKey, tasks, onCardOpen, onAddTask, draggingId, onD
     e.preventDefault();
     enterCount.current = 0;
     setDragOver(false);
-    const taskId = parseInt(e.dataTransfer.getData('taskId'), 10);
+    // Keep taskId as a string to support both numeric IDs and UUIDs.
+    const taskId = e.dataTransfer.getData('taskId');
     if (taskId) onDrop(taskId, statusKey);
   };
 
@@ -221,7 +222,8 @@ export function KanbanBoard({ onCardOpen, onAddTask }) {
   return (
     <div
       onDragStart={(e) => {
-        requestAnimationFrame(() => setDraggingId(parseInt(e.dataTransfer.getData('taskId') || '0', 10)));
+        const id = e.dataTransfer.getData('taskId') || '';
+        requestAnimationFrame(() => setDraggingId(id || null));
       }}
       onDragEnd={() => setDraggingId(null)}
       style={{

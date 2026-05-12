@@ -1,106 +1,191 @@
 import { create } from 'zustand';
-import { mockTasks, mockTags } from '../utils/mockData';
+import { api } from '../api/client';
 
-const PAGE_SIZE = 6;
+// Map any legacy/extra statuses to the 3 supported ones
+function normalizeStatus(s) {
+  if (s === 'review')  return 'in_progress';
+  if (s === 'blocked') return 'todo';
+  return s;
+}
+
+// API → UI shape
+function normalize(t) {
+  return {
+    id:          t.id,
+    title:       t.title,
+    description: t.description ?? '',
+    status:      normalizeStatus(t.status.toLowerCase()),
+    priority:    t.priority.toLowerCase(),      // LOW → low
+    assignee:    t.assignee
+                   ? { id: t.assignee.id, username: t.assignee.nickname }
+                   : null,
+    tags:        (t.tags ?? []).map((tg) => ({
+                   id:    tg.id,
+                   name:  tg.name,
+                   color: tagColor(tg.name),
+                 })),
+    assignmentStatus: (t.assignmentStatus ?? 'NONE').toUpperCase(),
+    assignedById:     t.assignedById ?? null,
+    viewerUserIds:    t.viewerUserIds ?? [],
+    createdAt:        t.createdAt,
+    updatedAt:        t.updatedAt,
+    visibility:       t.visibility ?? 'PUBLIC',
+  };
+}
+
+// Deterministic color from tag name
+const PALETTE = ['#007aff','#34c759','#ff9500','#ff3b30','#af52de','#5ac8fa'];
+function tagColor(name) {
+  let h = 0;
+  for (const c of (name ?? '')) h = (h * 31 + c.charCodeAt(0)) & 0xffffffff;
+  return PALETTE[Math.abs(h) % PALETTE.length];
+}
 
 export const useTaskStore = create((set, get) => ({
-  tasks: [],
-  tags: [],
-  isLoading: false,
-  error: null,
+  tasks:      [],
+  tags:       [],
+  isLoading:  false,
+  error:      null,
+  pagination: { total: 0, page: 1, pageSize: 20, totalPages: 1 },
 
-  filters: { status: null, priority: null, tagId: null, assigneeId: null, search: '', onlyMine: false },
-  sort: { field: 'updatedAt', dir: 'desc' },
-  page: 1,
+  filters: {
+    status:   null,
+    priority: null,
+    tag:      null,
+    q:        '',
+    mine:     null,
+    sort:     'updatedAt',
+    order:    'desc',
+    page:     1,
+  },
 
-  setFilter: (key, value) => set((s) => ({ filters: { ...s.filters, [key]: value }, page: 1 })),
-  clearFilters: () => set({ filters: { status: null, priority: null, tagId: null, assigneeId: null, search: '', onlyMine: false }, page: 1 }),
-  setSort: (field, dir) => set({ sort: { field, dir }, page: 1 }),
-  setPage: (page) => set({ page }),
+  setFilter: (key, value) =>
+    set((s) => ({ filters: { ...s.filters, [key]: value, page: 1 } })),
 
-  fetchTasks: async () => {
+  clearFilters: () =>
+    set({ filters: { status: null, priority: null, tag: null, q: '', mine: null, sort: 'updatedAt', order: 'desc', page: 1 } }),
+
+  setPage: (page) =>
+    set((s) => ({ filters: { ...s.filters, page } })),
+
+  setSort: (sort, order) =>
+    set((s) => ({ filters: { ...s.filters, sort, order, page: 1 } })),
+
+  fetchTasks: async ({ kanban = false } = {}) => {
     set({ isLoading: true, error: null });
-    await new Promise((r) => setTimeout(r, 600));
-    set({ tasks: mockTasks, tags: mockTags, isLoading: false });
+    const { filters } = get();
+    const params = {
+      sort:     filters.sort,
+      order:    filters.order,
+      page:     kanban ? 1 : filters.page,
+      pageSize: kanban ? 100 : 20,
+    };
+    if (filters.status)   params.status   = filters.status.toUpperCase();
+    if (filters.priority) params.priority = filters.priority.toUpperCase();
+    if (filters.tag)      params.tag      = filters.tag;
+    if (filters.q)        params.q        = filters.q;
+    if (filters.mine)     params.mine     = filters.mine;
+
+    try {
+      const { data } = await api.get('/tasks', { params });
+      const items = data.items ?? [];
+      set({
+        tasks: items.map(normalize),
+        pagination: {
+          total:      data.total,
+          page:       data.page,
+          pageSize:   data.pageSize,
+          totalPages: Math.ceil(data.total / data.pageSize),
+        },
+        isLoading: false,
+      });
+    } catch (err) {
+      set({ error: err.message, isLoading: false });
+    }
   },
 
-  getFilteredTasks: () => {
-    const { tasks, filters, sort } = get();
-    const PRIORITY_RANK = { low: 0, medium: 1, high: 2 };
+  fetchTags: async () => {
+    try {
+      const { data } = await api.get('/tags');
+      set({ tags: data.map((t) => ({ id: t.id, name: t.name, color: tagColor(t.name) })) });
+    } catch {}
+  },
 
-    let result = tasks.filter((t) => {
-      if (filters.status     && t.status !== filters.status) return false;
-      if (filters.priority   && t.priority !== filters.priority) return false;
-      if (filters.tagId      && !t.tags.some((tg) => tg.id === filters.tagId)) return false;
-      if (filters.assigneeId && t.assignee?.id !== filters.assigneeId) return false;
-      if (filters.onlyMine   && t.assignee?.id !== 4) return false;
-      if (filters.search     && !t.title.toLowerCase().includes(filters.search.toLowerCase())) return false;
-      return true;
+  createTask: async (body) => {
+    const { data } = await api.post('/tasks', {
+      title:       body.title,
+      description: body.description ?? '',
+      status:      (body.status ?? 'todo').toUpperCase(),
+      priority:    (body.priority ?? 'medium').toUpperCase(),
+      visibility:  'ANYONE',
     });
-
-    result = [...result].sort((a, b) => {
-      let av, bv;
-      if (sort.field === 'priority') { av = PRIORITY_RANK[a.priority]; bv = PRIORITY_RANK[b.priority]; }
-      else if (sort.field === 'title') { av = a.title.toLowerCase(); bv = b.title.toLowerCase(); }
-      else { av = new Date(a[sort.field]); bv = new Date(b[sort.field]); }
-      if (av < bv) return sort.dir === 'asc' ? -1 : 1;
-      if (av > bv) return sort.dir === 'asc' ? 1 : -1;
-      return 0;
-    });
-
-    return result;
+    set((s) => ({ tasks: [normalize(data), ...s.tasks] }));
+    return data;
   },
 
-  getPagedTasks: () => {
-    const { page } = get();
-    const all = get().getFilteredTasks();
-    const total = all.length;
-    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-    const safePage = Math.min(page, totalPages);
-    const items = all.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-    return { items, total, page: safePage, totalPages, pageSize: PAGE_SIZE };
+  updateTask: async (id, body) => {
+    const existing = get().tasks.find((t) => t.id === id);
+    if (!existing) return;
+    // Optimistic update
+    set((s) => ({ tasks: s.tasks.map((t) => t.id === id ? { ...t, ...body } : t) }));
+    try {
+      const { data } = await api.put(`/tasks/${id}`, {
+        title:       body.title       ?? existing.title,
+        description: body.description ?? existing.description ?? '',
+        status:      (body.status     ?? existing.status).toUpperCase(),
+        priority:    (body.priority   ?? existing.priority).toUpperCase(),
+        visibility:  existing.visibility ?? 'ANYONE',
+        viewerUserIds: [],
+      });
+      set((s) => ({ tasks: s.tasks.map((t) => t.id === id ? normalize(data) : t) }));
+    } catch (err) {
+      // Rollback
+      set((s) => ({ tasks: s.tasks.map((t) => t.id === id ? existing : t) }));
+      throw err;
+    }
   },
 
-  deleteTask: (id) => set((s) => ({ tasks: s.tasks.filter((t) => t.id !== id) })),
-
-  addTask: (task) => set((s) => ({
-    tasks: [{ ...task, id: Date.now(), blockedBy: task.blockedBy ?? [] }, ...s.tasks],
-  })),
-
-  updateTask: (id, patch) => set((s) => ({
-    tasks: s.tasks.map((t) => (t.id === id ? { ...t, ...patch, updatedAt: new Date().toISOString() } : t)),
-  })),
-
-  addBlocker: (taskId, blockerId) => set((s) => ({
-    tasks: s.tasks.map((t) =>
-      t.id === taskId && !t.blockedBy.includes(blockerId)
-        ? { ...t, blockedBy: [...t.blockedBy, blockerId] }
-        : t
-    ),
-  })),
-
-  removeBlocker: (taskId, blockerId) => set((s) => ({
-    tasks: s.tasks.map((t) =>
-      t.id === taskId ? { ...t, blockedBy: t.blockedBy.filter((id) => id !== blockerId) } : t
-    ),
-  })),
-
-  moveTaskStatus: (taskId, newStatus) => set((s) => ({
-    tasks: s.tasks.map((t) =>
-      t.id === taskId ? { ...t, status: newStatus, updatedAt: new Date().toISOString() } : t
-    ),
-  })),
-
-  assignTask: (taskId, user) => set((s) => ({
-    tasks: s.tasks.map((t) =>
-      t.id === taskId ? { ...t, assignee: user, updatedAt: new Date().toISOString() } : t
-    ),
-  })),
-
-  selfAssign: (taskId) => {
-    const CURRENT_USER = { id: 4, username: 'you' };
-    get().assignTask(taskId, CURRENT_USER);
+  deleteTask: async (id) => {
+    const backup = get().tasks;
+    set((s) => ({ tasks: s.tasks.filter((t) => t.id !== id) }));
+    try {
+      await api.delete(`/tasks/${id}`);
+    } catch (err) {
+      set({ tasks: backup });
+      throw err;
+    }
   },
+
+  moveTaskStatus: async (taskId, newStatus) => {
+    // Be robust to API id types (number vs string vs UUID).
+    const existing = get().tasks.find((t) => String(t.id) === String(taskId));
+    if (!existing || existing.status === newStatus) return;
+    // Optimistic
+    set((s) => ({ tasks: s.tasks.map((t) => String(t.id) === String(taskId) ? { ...t, status: newStatus } : t) }));
+    try {
+      await api.put(`/tasks/${taskId}`, {
+        title:        existing.title,
+        description:  existing.description ?? '',
+        status:       newStatus.toUpperCase(),
+        priority:     existing.priority.toUpperCase(),
+        visibility:   existing.visibility ?? 'ANYONE',
+        viewerUserIds: [],
+      });
+    } catch {
+      // Rollback
+      set((s) => ({ tasks: s.tasks.map((t) => String(t.id) === String(taskId) ? existing : t) }));
+    }
+  },
+
+  selfAssign: async (taskId) => {
+    try {
+      const { data } = await api.post(`/tasks/${taskId}/assign`);
+      set((s) => ({ tasks: s.tasks.map((t) => t.id === taskId ? normalize(data) : t) }));
+    } catch (err) {
+      throw err;
+    }
+  },
+
+  // Kept for compatibility with components that call getFilteredTasks()
+  getFilteredTasks: () => get().tasks,
 }));
-
-export const PAGE_SIZE_EXPORT = PAGE_SIZE;

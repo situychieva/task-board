@@ -32,25 +32,34 @@ function StatsPills({ tasks }) {
 }
 
 const VIEWS = [
-  { key: 'list',   Icon: List,        label: 'List' },
-  { key: 'grid',   Icon: LayoutGrid,  label: 'Grid' },
-  { key: 'kanban', Icon: Columns,     label: 'Board' },
+  { key: 'list',   Icon: List,       label: 'List'  },
+  { key: 'grid',   Icon: LayoutGrid, label: 'Grid'  },
+  { key: 'kanban', Icon: Columns,    label: 'Board' },
 ];
 
 export function TaskListPage() {
-  const { fetchTasks, deleteTask, isLoading, error, getFilteredTasks, tasks } = useTaskStore();
-  const [view, setView] = React.useState('list');
+  const { fetchTasks, fetchTags, deleteTask, isLoading, error, tasks, filters } = useTaskStore();
+  const [view, setView]   = React.useState('list');
   const [modal, setModal] = React.useState(null);
 
-  useEffect(() => { fetchTasks(); }, []);
-  const filtered = getFilteredTasks();
+  // Fetch whenever filters or view change; in Kanban mode load all tasks at once
+  useEffect(() => { fetchTasks({ kanban: view === 'kanban' }); }, [
+    view,
+    filters.status, filters.priority, filters.tag,
+    filters.q, filters.mine, filters.sort, filters.order, filters.page,
+  ]);
+  useEffect(() => { fetchTags(); }, []);
 
-  const openDetail  = (task)      => setModal({ type: 'detail', task });
-  const openCreate  = (status)    => setModal({ type: 'create', defaultStatus: status ?? 'todo' });
-  const openEdit    = (task)      => setModal({ type: 'edit', task });
-  const openDelete  = (task)      => setModal({ type: 'delete', task });
-  const closeModal  = ()          => setModal(null);
-  const handleDeleteConfirm = ()  => { deleteTask(modal.task.id); closeModal(); };
+  const openDetail = (task)   => setModal({ type: 'detail', task });
+  const openCreate = (status) => setModal({ type: 'create', defaultStatus: status ?? 'todo' });
+  const openEdit   = (task)   => setModal({ type: 'edit',   task });
+  const openDelete = (task)   => setModal({ type: 'delete', task });
+  const closeModal = ()       => setModal(null);
+
+  const handleDeleteConfirm = async () => {
+    await deleteTask(modal.task.id);
+    closeModal();
+  };
 
   const isKanban = view === 'kanban';
 
@@ -61,10 +70,10 @@ export function TaskListPage() {
         gridTemplateColumns: '232px 1fr',
         gridTemplateRows: 'auto 1fr',
         height: '100vh', width: '100vw',
-        overflow: 'hidden',
-        background: 'var(--bg)',
+        overflow: 'hidden', background: 'var(--bg)',
       }}>
 
+        {/* Header */}
         <header style={{
           gridColumn: '1 / -1',
           display: 'flex', alignItems: 'center', gap: 12,
@@ -75,56 +84,35 @@ export function TaskListPage() {
           position: 'sticky', top: 0, zIndex: 10,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{
-              width: 26, height: 26, borderRadius: 7, background: 'var(--blue)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              boxShadow: '0 1px 4px rgba(0,122,255,0.35)',
-            }}>
+            <div style={{ width: 26, height: 26, borderRadius: 7, background: 'var(--blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 1px 4px rgba(0,122,255,0.35)' }}>
               <span style={{ fontSize: 13, color: '#fff' }}>✓</span>
             </div>
-            <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>
-              Tasks
-            </span>
+            <span style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', letterSpacing: '-0.02em' }}>Tasks</span>
           </div>
 
           <div style={{ flex: 1 }} />
 
-          <div style={{
-            display: 'flex', background: 'rgba(0,0,0,0.05)',
-            borderRadius: 'var(--r-sm)', padding: 2, gap: 1,
-            border: '0.5px solid var(--sep)',
-          }}>
+          <div style={{ display: 'flex', background: 'rgba(0,0,0,0.05)', borderRadius: 'var(--r-sm)', padding: 2, gap: 1, border: '0.5px solid var(--sep)' }}>
             {VIEWS.map(({ key, Icon, label }) => (
-              <button
-                key={key}
-                onClick={() => setView(key)}
-                title={label}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 5,
-                  padding: '4px 10px', borderRadius: 6,
-                  background: view === key ? 'var(--bg-2)' : 'transparent',
-                  color: view === key ? 'var(--text)' : 'var(--text-4)',
-                  boxShadow: view === key ? 'var(--sh-xs)' : 'none',
-                  fontSize: 12, fontWeight: view === key ? 600 : 400,
-                  transition: 'all 0.15s ease',
-                }}
-              >
+              <button key={key} onClick={() => setView(key)} title={label} style={{
+                display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 6,
+                background: view === key ? 'var(--bg-2)' : 'transparent',
+                color: view === key ? 'var(--text)' : 'var(--text-4)',
+                boxShadow: view === key ? 'var(--sh-xs)' : 'none',
+                fontSize: 12, fontWeight: view === key ? 600 : 400, transition: 'all 0.15s ease',
+              }}>
                 <Icon size={13} strokeWidth={1.8} />
                 <span style={{ display: view === key ? 'inline' : 'none' }}>{label}</span>
               </button>
             ))}
           </div>
 
-          <button
-            onClick={() => openCreate(null)}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 5,
-              background: 'var(--blue)', color: '#fff',
-              borderRadius: 'var(--r-sm)', padding: '6px 14px',
-              fontSize: 13, fontWeight: 600,
-              boxShadow: '0 1px 4px rgba(0,122,255,0.3)',
-              transition: 'opacity 0.15s',
-            }}
+          <button onClick={() => openCreate(null)} style={{
+            display: 'flex', alignItems: 'center', gap: 5,
+            background: 'var(--blue)', color: '#fff', borderRadius: 'var(--r-sm)',
+            padding: '6px 14px', fontSize: 13, fontWeight: 600,
+            boxShadow: '0 1px 4px rgba(0,122,255,0.3)', transition: 'opacity 0.15s',
+          }}
             onMouseEnter={(e) => e.currentTarget.style.opacity = '0.88'}
             onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
           >
@@ -132,6 +120,7 @@ export function TaskListPage() {
           </button>
         </header>
 
+        {/* Sidebar */}
         <aside style={{
           background: 'rgba(242,242,247,0.6)',
           backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
@@ -141,6 +130,7 @@ export function TaskListPage() {
           <FilterBar />
         </aside>
 
+        {/* Main */}
         <main style={{
           overflowY: isKanban ? 'hidden' : 'auto',
           overflowX: 'hidden',
@@ -149,24 +139,17 @@ export function TaskListPage() {
           gap: isKanban ? 0 : 14,
         }}>
 
-          {!isKanban && !isLoading && tasks.length > 0 && (
-            <StatsPills tasks={tasks} />
-          )}
+          {!isKanban && !isLoading && tasks.length > 0 && <StatsPills tasks={tasks} />}
+
           {!isKanban && !isLoading && (
             <p style={{ fontSize: 12, color: 'var(--text-4)', fontWeight: 500 }}>
-              {filtered.length} {filtered.length === 1 ? 'task' : 'tasks'}
+              {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
             </p>
           )}
 
           {isKanban && !isLoading && (
             <div style={{ padding: '0 24px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 12, color: 'var(--text-4)', fontWeight: 500 }}>
-                {filtered.length} {filtered.length === 1 ? 'task' : 'tasks'}
-              </span>
-              <span style={{ fontSize: 12, color: 'var(--sep)', userSelect: 'none' }}>·</span>
-              <span style={{ fontSize: 12, color: 'var(--text-5)' }}>
-                Drag cards between columns to change status
-              </span>
+              <span style={{ fontSize: 12, color: 'var(--text-5)' }}>Drag cards between columns to change status</span>
             </div>
           )}
 
@@ -185,14 +168,11 @@ export function TaskListPage() {
 
           {!isLoading && !error && isKanban && (
             <div style={{ flex: 1, overflow: 'hidden' }}>
-              <KanbanBoard
-                onCardOpen={openDetail}
-                onAddTask={(status) => openCreate(status)}
-              />
+              <KanbanBoard onCardOpen={openDetail} onAddTask={openCreate} onDeleteTask={openDelete} />
             </div>
           )}
 
-          {!isLoading && !error && !isKanban && filtered.length === 0 && (
+          {!isLoading && !error && !isKanban && tasks.length === 0 && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, height: 220, color: 'var(--text-4)' }}>
               <span style={{ fontSize: 36, opacity: 0.3 }}>◻</span>
               <span style={{ fontSize: 14, fontWeight: 500 }}>No tasks</span>
@@ -200,13 +180,13 @@ export function TaskListPage() {
             </div>
           )}
 
-          {!isLoading && !error && !isKanban && filtered.length > 0 && (
+          {!isLoading && !error && !isKanban && tasks.length > 0 && (
             <div style={{
               display: 'grid',
               gridTemplateColumns: view === 'grid' ? 'repeat(auto-fill, minmax(300px, 1fr))' : '1fr',
               gap: 10, alignContent: 'start',
             }}>
-              {filtered.map((task, i) => (
+              {tasks.map((task, i) => (
                 <div key={task.id} style={{ animationDelay: `${i * 25}ms` }}>
                   <TaskCard
                     task={task}
@@ -222,12 +202,7 @@ export function TaskListPage() {
 
       {modal?.type === 'detail' && (
         <Modal title="Task Detail" onClose={closeModal}>
-          <TaskDetail
-            task={modal.task}
-            onEdit={() => openEdit(modal.task)}
-            onDelete={() => openDelete(modal.task)}
-            onClose={closeModal}
-          />
+          <TaskDetail task={modal.task} onEdit={() => { closeModal(); openEdit(modal.task); }} onDelete={() => openDelete(modal.task)} onClose={closeModal} />
         </Modal>
       )}
       {modal?.type === 'create' && (

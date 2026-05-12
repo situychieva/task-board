@@ -1,11 +1,9 @@
 import React from 'react';
 
 export const STATUS_META = {
-  todo:        { label: 'To Do',       color: 'var(--gray)',   bg: 'var(--gray-bg)' },
-  in_progress: { label: 'In Progress', color: 'var(--blue)',   bg: 'var(--blue-bg)' },
-  review:      { label: 'Review',      color: 'var(--orange)', bg: 'var(--orange-bg)' },
-  done:        { label: 'Done',        color: 'var(--green)',  bg: 'var(--green-bg)' },
-  blocked:     { label: 'Blocked',     color: 'var(--red)',    bg: 'var(--red-bg)' },
+  todo:        { label: 'To Do',       color: 'var(--gray)',  bg: 'var(--gray-bg)' },
+  in_progress: { label: 'In Progress', color: 'var(--blue)',  bg: 'var(--blue-bg)' },
+  done:        { label: 'Done',        color: 'var(--green)', bg: 'var(--green-bg)' },
 };
 
 export const PRIORITY_META = {
