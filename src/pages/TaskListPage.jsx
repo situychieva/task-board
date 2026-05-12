@@ -42,7 +42,6 @@ export function TaskListPage() {
   const [view, setView]   = React.useState('list');
   const [modal, setModal] = React.useState(null);
 
-  // Fetch whenever filters or view change; in Kanban mode load all tasks at once
   useEffect(() => { fetchTasks({ kanban: view === 'kanban' }); }, [
     view,
     filters.status, filters.priority, filters.tag,
@@ -62,6 +61,7 @@ export function TaskListPage() {
   };
 
   const isKanban = view === 'kanban';
+  const hasFilters = filters.status || filters.priority || filters.tag || filters.q;
 
   return (
     <>
@@ -112,6 +112,7 @@ export function TaskListPage() {
             background: 'var(--blue)', color: '#fff', borderRadius: 'var(--r-sm)',
             padding: '6px 14px', fontSize: 13, fontWeight: 600,
             boxShadow: '0 1px 4px rgba(0,122,255,0.3)', transition: 'opacity 0.15s',
+            border: 'none', cursor: 'pointer',
           }}
             onMouseEnter={(e) => e.currentTarget.style.opacity = '0.88'}
             onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
@@ -141,14 +142,14 @@ export function TaskListPage() {
 
           {!isKanban && !isLoading && tasks.length > 0 && <StatsPills tasks={tasks} />}
 
-          {!isKanban && !isLoading && (
+          {!isKanban && !isLoading && tasks.length > 0 && (
             <p style={{ fontSize: 12, color: 'var(--text-4)', fontWeight: 500 }}>
               {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
             </p>
           )}
 
           {isKanban && !isLoading && (
-            <div style={{ padding: '0 24px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ padding: '0 24px 12px' }}>
               <span style={{ fontSize: 12, color: 'var(--text-5)' }}>Drag cards between columns to change status</span>
             </div>
           )}
@@ -172,14 +173,48 @@ export function TaskListPage() {
             </div>
           )}
 
+          {/* Empty state */}
           {!isLoading && !error && !isKanban && tasks.length === 0 && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, height: 220, color: 'var(--text-4)' }}>
-              <span style={{ fontSize: 36, opacity: 0.3 }}>◻</span>
-              <span style={{ fontSize: 14, fontWeight: 500 }}>No tasks</span>
-              <span style={{ fontSize: 13 }}>Try adjusting your filters</span>
+            <div style={{
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+              justifyContent: 'center', gap: 16, height: 'calc(100vh - 200px)',
+            }}>
+              <div style={{
+                width: 72, height: 72, borderRadius: 20,
+                background: 'var(--bg-2)', border: '0.5px solid var(--sep)',
+                boxShadow: 'var(--sh-sm)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 32,
+              }}>
+                ✓
+              </div>
+              <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-2)' }}>No tasks yet</span>
+                <span style={{ fontSize: 13, color: 'var(--text-4)' }}>
+                  {hasFilters
+                    ? 'No tasks match your filters — try clearing them'
+                    : 'Create your first task to get started'}
+                </span>
+              </div>
+              {!hasFilters && (
+                <button
+                  onClick={() => openCreate(null)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 6,
+                    background: 'var(--blue)', color: '#fff',
+                    borderRadius: 'var(--r-sm)', padding: '8px 18px',
+                    fontSize: 13, fontWeight: 600, border: 'none',
+                    boxShadow: '0 1px 4px rgba(0,122,255,0.3)',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <Plus size={14} strokeWidth={2.5} /> New Task
+                </button>
+              )}
             </div>
           )}
 
+          {/* Task list / grid */}
           {!isLoading && !error && !isKanban && tasks.length > 0 && (
             <div style={{
               display: 'grid',
@@ -212,7 +247,7 @@ export function TaskListPage() {
       )}
       {modal?.type === 'edit' && (
         <Modal title="Edit Task" onClose={closeModal}>
-          <TaskForm task={modal.task} onClose={closeModal} />
+          <TaskForm key={modal.task.id} task={modal.task} onClose={closeModal} />
         </Modal>
       )}
       {modal?.type === 'delete' && (

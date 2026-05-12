@@ -36,9 +36,6 @@ function Field({ label, error, children }) {
   );
 }
 
-// React Hook Form `register()` needs the underlying DOM ref.
-// When wrapping <select> in a component, we must forward the ref,
-// otherwise the select value can fail to register and defaults may "stick".
 const StyledSelectWithRef = React.forwardRef(function StyledSelectWithRef({ error, children, ...props }, ref) {
   return (
     <select

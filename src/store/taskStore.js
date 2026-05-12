@@ -1,44 +1,47 @@
 import { create } from 'zustand';
 import { api } from '../api/client';
 
-// Map any legacy/extra statuses to the 3 supported ones
 function normalizeStatus(s) {
   if (s === 'review')  return 'in_progress';
   if (s === 'blocked') return 'todo';
   return s;
 }
 
-// API → UI shape
 function normalize(t) {
   return {
-    id:          t.id,
-    title:       t.title,
-    description: t.description ?? '',
-    status:      normalizeStatus(t.status.toLowerCase()),
-    priority:    t.priority.toLowerCase(),      // LOW → low
-    assignee:    t.assignee
-                   ? { id: t.assignee.id, username: t.assignee.nickname }
-                   : null,
-    tags:        (t.tags ?? []).map((tg) => ({
-                   id:    tg.id,
-                   name:  tg.name,
-                   color: tagColor(tg.name),
-                 })),
+    id:               t.id,
+    title:            t.title,
+    description:      t.description ?? '',
+    status:           normalizeStatus(t.status.toLowerCase()),
+    priority:         t.priority.toLowerCase(),
+    assignee:         t.assignee
+                        ? { id: t.assignee.id, username: t.assignee.nickname }
+                        : null,
+    tags:             (t.tags ?? []).map((tg) => ({
+                        id:    tg.id,
+                        name:  tg.name,
+                        color: tagColor(tg.name),
+                      })),
     assignmentStatus: (t.assignmentStatus ?? 'NONE').toUpperCase(),
     assignedById:     t.assignedById ?? null,
     viewerUserIds:    t.viewerUserIds ?? [],
     createdAt:        t.createdAt,
     updatedAt:        t.updatedAt,
-    visibility:       t.visibility ?? 'PUBLIC',
+    visibility:       t.visibility ?? 'ANYONE',
   };
 }
 
-// Deterministic color from tag name
 const PALETTE = ['#007aff','#34c759','#ff9500','#ff3b30','#af52de','#5ac8fa'];
 function tagColor(name) {
   let h = 0;
   for (const c of (name ?? '')) h = (h * 31 + c.charCodeAt(0)) & 0xffffffff;
   return PALETTE[Math.abs(h) % PALETTE.length];
+}
+
+function currentUserId() {
+  try {
+    return JSON.parse(localStorage.getItem('authUser') ?? '{}')?.id ?? null;
+  } catch { return null; }
 }
 
 export const useTaskStore = create((set, get) => ({
@@ -112,34 +115,35 @@ export const useTaskStore = create((set, get) => ({
   },
 
   createTask: async (body) => {
+    const userId = currentUserId();
     const { data } = await api.post('/tasks', {
       title:       body.title,
       description: body.description ?? '',
       status:      (body.status ?? 'todo').toUpperCase(),
       priority:    (body.priority ?? 'medium').toUpperCase(),
       visibility:  'ANYONE',
+      ...(userId ? { assigneeId: userId } : {}),
     });
     set((s) => ({ tasks: [normalize(data), ...s.tasks] }));
+    get().fetchTasks();
     return data;
   },
 
   updateTask: async (id, body) => {
     const existing = get().tasks.find((t) => t.id === id);
     if (!existing) return;
-    // Optimistic update
     set((s) => ({ tasks: s.tasks.map((t) => t.id === id ? { ...t, ...body } : t) }));
     try {
       const { data } = await api.put(`/tasks/${id}`, {
-        title:       body.title       ?? existing.title,
-        description: body.description ?? existing.description ?? '',
-        status:      (body.status     ?? existing.status).toUpperCase(),
-        priority:    (body.priority   ?? existing.priority).toUpperCase(),
-        visibility:  existing.visibility ?? 'ANYONE',
+        title:         body.title       ?? existing.title,
+        description:   body.description ?? existing.description ?? '',
+        status:        (body.status     ?? existing.status).toUpperCase(),
+        priority:      (body.priority   ?? existing.priority).toUpperCase(),
+        visibility:    existing.visibility ?? 'ANYONE',
         viewerUserIds: [],
       });
       set((s) => ({ tasks: s.tasks.map((t) => t.id === id ? normalize(data) : t) }));
     } catch (err) {
-      // Rollback
       set((s) => ({ tasks: s.tasks.map((t) => t.id === id ? existing : t) }));
       throw err;
     }
@@ -157,35 +161,29 @@ export const useTaskStore = create((set, get) => ({
   },
 
   moveTaskStatus: async (taskId, newStatus) => {
-    // Be robust to API id types (number vs string vs UUID).
     const existing = get().tasks.find((t) => String(t.id) === String(taskId));
     if (!existing || existing.status === newStatus) return;
-    // Optimistic
     set((s) => ({ tasks: s.tasks.map((t) => String(t.id) === String(taskId) ? { ...t, status: newStatus } : t) }));
     try {
       await api.put(`/tasks/${taskId}`, {
-        title:        existing.title,
-        description:  existing.description ?? '',
-        status:       newStatus.toUpperCase(),
-        priority:     existing.priority.toUpperCase(),
-        visibility:   existing.visibility ?? 'ANYONE',
+        title:         existing.title,
+        description:   existing.description ?? '',
+        status:        newStatus.toUpperCase(),
+        priority:      existing.priority.toUpperCase(),
+        visibility:    existing.visibility ?? 'ANYONE',
         viewerUserIds: [],
       });
     } catch {
-      // Rollback
       set((s) => ({ tasks: s.tasks.map((t) => String(t.id) === String(taskId) ? existing : t) }));
     }
   },
 
   selfAssign: async (taskId) => {
-    try {
-      const { data } = await api.post(`/tasks/${taskId}/assign`);
-      set((s) => ({ tasks: s.tasks.map((t) => t.id === taskId ? normalize(data) : t) }));
-    } catch (err) {
-      throw err;
-    }
+    const userId = currentUserId();
+    if (!userId) throw new Error('Not logged in');
+    const { data } = await api.post(`/tasks/${taskId}/assignment`, { assigneeId: userId });
+    set((s) => ({ tasks: s.tasks.map((t) => t.id === taskId ? normalize(data) : t) }));
   },
 
-  // Kept for compatibility with components that call getFilteredTasks()
   getFilteredTasks: () => get().tasks,
 }));

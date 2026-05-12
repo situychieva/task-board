@@ -55,23 +55,9 @@ export function TaskDetail({ task, onEdit, onDelete, onClose }) {
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <Pill color={status.color} bg={status.bg}>{status.label}</Pill>
         <Pill color={priority.color} bg={priority.bg}>{priority.dot} {priority.label}</Pill>
-        <Pill color={assignmentStatus.color} bg={assignmentStatus.bg}>{assignmentStatus.label}</Pill>
-        {task.assignmentStatus === 'NONE' && (
-          <button
-            onClick={handleSelfAssign}
-            disabled={assigning}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 5, padding: '3px 10px',
-              borderRadius: 99, fontSize: 12, fontWeight: 500,
-              background: 'var(--green-bg)', color: 'var(--green)',
-              border: '0.5px solid rgba(52,199,89,0.3)',
-              opacity: assigning ? 0.6 : 1, cursor: assigning ? 'default' : 'pointer',
-            }}
-          >
-            <UserCheck size={11} strokeWidth={2} />
-            {assigning ? 'Assigning…' : 'Assign to me'}
-          </button>
-        )}
+        <Pill color={assignmentStatus.color} bg={assignmentStatus.bg}>
+          {task.assignee ? task.assignee.username : 'Assigned to me'}
+        </Pill>
       </div>
       {assignError && (
         <div style={{ padding: '8px 12px', borderRadius: 'var(--r-sm)', background: 'var(--red-bg)', border: '0.5px solid rgba(255,59,48,0.2)', fontSize: 13, color: 'var(--red)' }}>
